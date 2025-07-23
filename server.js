@@ -4,7 +4,7 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; // Usar el puerto de Render o 3000 para local
 
 // Middlewares
 // Restringir CORS para aceptar peticiones solo desde tu tienda Shopify
@@ -19,6 +19,11 @@ app.use(cors({
   }
 }));
 app.use(express.json());
+
+// Ruta raíz para health checks y bienvenida
+app.get('/', (req, res) => {
+    res.send('Servidor de NovaAI para DecoArche funcionando correctamente. ¡Listo para recibir peticiones del chatbot! 🚀');
+});
 
 // Inicializar Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -112,3 +117,4 @@ app.post('/leads', (req, res) => {
 app.listen(port, () => {
     console.log(`Servidor de NovaAI escuchando en http://localhost:${port}`);
 });
+
