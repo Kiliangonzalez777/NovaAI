@@ -4,6 +4,13 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
+// Permitir que el bot se muestre en un iframe externo como Shopify
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'ALLOWALL');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  next();
+});
+
 const port = process.env.PORT || 3000; // Usar el puerto de Render o 3000 para local
 
 // Middlewares
