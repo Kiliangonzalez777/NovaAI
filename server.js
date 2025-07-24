@@ -122,5 +122,5 @@ app.post('/leads', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Servidor de NovaAI escuchando en http://localhost:${port}`);
+    console.log(`Servidor de NovaAI escuchando en https://novaai-ceui.onrender.com:${port}`);
 });
