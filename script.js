@@ -1,4 +1,13 @@
-document.addEventListener('DOMContentLoaded', () => {
+// --- Variable de control para evitar doble inicialización ---
+let chatbotInitialized = false;
+
+// --- Función principal que inicializa todo el chatbot ---
+function initializeNovaChatbot() {
+    // Si ya se ha inicializado, no hacer nada más.
+    if (chatbotInitialized) {
+        return;
+    }
+
     // --- Elementos del DOM ---
     const chatBubble = document.getElementById('chat-bubble');
     const chatContainer = document.getElementById('chat-container');
@@ -7,7 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = document.getElementById('user-input');
     const chatBox = document.getElementById('chat-box');
 
-    // IMPORTANTE: Esta URL deberá ser reemplazada por la del servidor público.
+    // Verificación crucial: si los elementos no existen, abortar.
+    // Esto puede pasar si el script se ejecuta antes de que el HTML esté listo.
+    if (!chatBubble || !chatContainer || !closeChatBtn || !sendBtn || !userInput || !chatBox) {
+        console.log("NovaAI: Elementos del DOM no encontrados. Reintentando...");
+        return;
+    }
+
+    // URL del servidor público en Render
     const API_BASE_URL = 'https://novaai-ceui.onrender.com';
 
     // --- Lógica para abrir y cerrar el chat ---
@@ -21,12 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Memoria y Contexto del Chatbot ---
     const context = {
-        userName: null, // Se podría usar en el futuro, por ahora lo dejamos.
+        userName: null,
         awaitingEmail: false,
     };
-    // Historial de la conversación para la API de Gemini.
-    // Comienza vacío. El primer mensaje del bot es solo para la UI.
-    const history = []; 
+    const history = [];
 
     // --- Lógica de Envío de Mensajes ---
     sendBtn.addEventListener('click', sendMessage);
@@ -42,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         appendMessage(userText, 'user-message');
         userInput.value = '';
-
         showTypingIndicator();
 
         try {
@@ -83,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isValidEmail(email) {
-        const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        const re = /^(([^<>()[\\].,;:\s@"]+(\.[^<>()[\\].,;:\s@"]+)*)|(".+"))@((\\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         return re.test(String(email).toLowerCase());
     }
 
@@ -96,35 +109,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Error al guardar el lead:", error);
-            // No mostramos este error al usuario para no interrumpir el flujo.
         }
     }
 
-    // --- Lógica Principal del Bot (Conexión con Gemini) ---
     async function getBotResponse(userText) {
-        // 1. Comprobar si estamos esperando el email (lógica de captación de leads)
         if (context.awaitingEmail) {
             if (isValidEmail(userText)) {
                 await saveLead(userText);
                 context.awaitingEmail = false;
-                // El modelo ya está instruido para dar una respuesta de agradecimiento.
-                // Continuamos para que Gemini genere esa respuesta.
             } else {
                 return "Parece que ese no es un email válido. ¿Podrías intentarlo de nuevo, por favor?";
             }
         }
 
-        // Añadir el mensaje actual del usuario al historial
         history.push({ role: "user", parts: [{ text: userText }] });
 
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: userText,
-                history: history.slice(0, -1) // Enviar historial sin el último mensaje del usuario
+                history: history.slice(0, -1)
             }),
         });
 
@@ -135,14 +140,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json();
         const botText = data.response;
 
-        // 2. Comprobar si la respuesta del bot pide el email para activar el contexto
         if (botText.toLowerCase().includes('email') || botText.toLowerCase().includes('correo electrónico')) {
             context.awaitingEmail = true;
         }
 
-        // Añadir la respuesta del bot al historial
         history.push({ role: "model", parts: [{ text: botText }] });
-
         return botText;
     }
-});
+
+    // Marcar como inicializado y mostrar mensaje de éxito en la consola.
+    chatbotInitialized = true;
+    console.log("¡Chatbot de NovaAI inicializado con éxito!");
+}
+
+// --- Lógica de Carga Robusta ---
+// Intento 1: Ejecutar cuando el HTML esté listo (el método estándar).
+document.addEventListener('DOMContentLoaded', initializeNovaChatbot);
+
+// Intento 2: Ejecutar cuando la página entera (imágenes, etc.) esté cargada.
+window.addEventListener('load', initializeNovaChatbot);
+
+// Intento 3 (Fallback): Si todo lo demás falla, intentar ejecutar después de 1 segundo.
+// Esto ayuda a esquivar errores de otros scripts que bloquean los eventos de carga.
+setTimeout(initializeNovaChatbot, 1000);
+
