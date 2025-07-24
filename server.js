@@ -4,13 +4,6 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-// Permitir que el bot se muestre en un iframe externo como Shopify
-app.use((req, res, next) => {
-  res.setHeader('X-Frame-Options', 'ALLOWALL');
-  res.setHeader('Content-Security-Policy', "frame-ancestors *");
-  next();
-});
-
 const port = process.env.PORT || 3000; // Usar el puerto de Render o 3000 para local
 
 // Middlewares
@@ -76,30 +69,37 @@ const model = genAI.getGenerativeModel({
 
 // Endpoint para el chat
 app.post('/chat', async (req, res) => {
+    console.log('\n--- INICIANDO PETICIÓN /chat ---');
     try {
-        const { message, history } = req.body; // El campo userName no se usa en el backend, se puede eliminar del fetch en script.js
+        const { message, history } = req.body;
+        console.log('Mensaje recibido:', message);
 
         if (!message) {
+            console.log('Error: Mensaje vacío. Devolviendo error 400.');
             return res.status(400).json({ error: 'No se ha proporcionado ningún mensaje.' });
         }
 
         const chat = model.startChat({
-            history: history, // El historial ya contiene el contexto necesario
+            history: history,
             generationConfig: {
                 maxOutputTokens: 300,
             },
         });
 
+        console.log('Enviando mensaje a la API de Gemini...');
         const result = await chat.sendMessage(message);
         const response = await result.response;
         const text = response.text();
         
+        console.log('Respuesta de Gemini recibida con éxito.');
         res.json({ response: text });
 
     } catch (error) {
-        console.error('Error al contactar con la API de Gemini:', error);
+        console.error('--- ERROR CRÍTICO en /chat ---');
+        console.error('Error detallado:', error);
         res.status(500).json({ error: 'Ha ocurrido un error al procesar tu solicitud.' });
     }
+    console.log('--- FIN PETICIÓN /chat ---\n');
 });
 
 // Endpoint para capturar leads
@@ -124,4 +124,3 @@ app.post('/leads', (req, res) => {
 app.listen(port, () => {
     console.log(`Servidor de NovaAI escuchando en http://localhost:${port}`);
 });
-
