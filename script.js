@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
 
     // IMPORTANTE: Esta URL deberá ser reemplazada por la del servidor público.
-    const API_BASE_URL = 'http://localhost:3000';
+    const API_BASE_URL = 'https://novaai-ceui.onrender.com';
 
     // --- Lógica para abrir y cerrar el chat ---
     chatBubble.addEventListener('click', () => {
